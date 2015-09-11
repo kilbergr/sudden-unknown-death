@@ -10,6 +10,7 @@ driver.navigate.to "http://webappa.cdc.gov/sasweb/ncipc/dataRestriction_lcd.html
 agree = driver.find_element(:class, "button2")
 agree.submit
 # form load
+
 wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 form = wait.until {
     element = driver.find_element(:name, "frmWISQ")
@@ -99,7 +100,11 @@ if form.displayed?
 	
 	def submitQ(state, race, sex, ethnicity, year1, year2, request, driver)
 		request.submit
+		find_percentages(driver)
 		# download = driver.find_element(:link, "Download Results in a Spreadsheet (CSV) File")
+		driver.navigate().back();
+	end
+	def find_percentages(driver)
 		youngest = driver.find_element(:link, "<1")
 		oneFour = driver.find_element(:link, "1-4")
 		fiveNine = driver.find_element(:link, "5-9")
@@ -112,33 +117,19 @@ if form.displayed?
 		sixtyfiveSeventyfour = driver.find_element(:link, "65-74")
 		seventyfiveEightyfour = driver.find_element(:link, "75-84")
 		oldest = driver.find_element(:link, "85+")
-		youngestRes = Nokogiri::HTML(Typhoeus.get(youngest).response_body)
-		oneFourRes = Nokogiri::HTML(Typhoeus.get(oneFour).response_body)
-		fiveNineRes = Nokogiri::HTML(Typhoeus.get(fiveNine).response_body)
-		tenFourteenRes = Nokogiri::HTML(Typhoeus.get(tenFourteen).response_body)
-		fifteenTwentyfourRes = Nokogiri::HTML(Typhoeus.get(fifteenTwentyfour).response_body)
-		twentyfiveThirtyfourRes = Nokogiri::HTML(Typhoeus.get(twentyfiveThirtyfour).response_body)
-		thirtyfiveFortyfourRes = Nokogiri::HTML(Typhoeus.get(thirtyfiveFortyfour).response_body)
-		fortyfiveFiftyfourRes = Nokogiri::HTML(Typhoeus.get(fortyfiveFiftyfour).response_body)
-		fiftyfiveSixtyfourRes = Nokogiri::HTML(Typhoeus.get(fiftyfiveSixtyfour).response_body)
-		sixtyfiveSeventyfourRes = Nokogiri::HTML(Typhoeus.get(sixtyfiveSeventyfour).response_body)
-		seventyfiveEightyfourRes = Nokogiri::HTML(Typhoeus.get(seventyfiveEightyfour).response_body)
-		oldestRes = Nokogiri::HTML(Typhoeus.get(oldest).response_body)
+		eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest]
 
-		p youngestRes
-		p oneFourRes
-		p fiveNineRes
-		p tenFourteenRes
-		p fifteenTwentyfourRes
-		p twentyfiveThirtyfourRes
-		p thirtyfiveFortyfourRes
-		p fortyfiveFiftyfourRes
-		p fiftyfiveSixtyfourRes
-		p sixtyfiveSeventyfourRes
-		p seventyfiveEightyfourRes
-		p oldestRes
-		 binding.pry
-		driver.navigate().back();
+		eachAge.each do |ageGroup|
+			response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
+			p response
+		end 
+		# Need to save up to youngestRes.children[1].children[7] because that's where they diverge
+		# ytext = youngestRes.children[1].children[7].children[3].children[10].children[5].children[0].children.children.text
+		# ypercent = youngestRes.children[1].children[7].children[3].children[10].children[5].children[3].children.children[2].text
+		
+	 driver.navigate().back();
+
+
 	end
 
 	allStates(state, race, sex, ethnicity, year1, year2, request, driver)
