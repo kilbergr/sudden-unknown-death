@@ -102,7 +102,6 @@ if form.displayed?
 		request.submit
 		find_percentages(driver)
 		# download = driver.find_element(:link, "Download Results in a Spreadsheet (CSV) File")
-		driver.navigate().back();
 	end
 	def find_percentages(driver)
 		youngest = driver.find_element(:link, "<1")
@@ -117,20 +116,17 @@ if form.displayed?
 		sixtyfiveSeventyfour = driver.find_element(:link, "65-74")
 		seventyfiveEightyfour = driver.find_element(:link, "75-84")
 		oldest = driver.find_element(:link, "85+")
+
 		eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest]
-
-		eachAge.each do |ageGroup|
-			response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
-			p response
-		end 
-		# Need to save up to youngestRes.children[1].children[7] because that's where they diverge
-		# ytext = youngestRes.children[1].children[7].children[3].children[10].children[5].children[0].children.children.text
-		# ypercent = youngestRes.children[1].children[7].children[3].children[10].children[5].children[3].children.children[2].text
-		
-	 driver.navigate().back();
-
-
+		getRes(eachAge)
+		driver.navigate().back();
 	end
+	def getRes(arr)
+			arr.each do |ageGroup|
+				response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
+				File.write('ALLMYDATA.html', response, mode: 'a')
+			end
+	end 
 
 	allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 
