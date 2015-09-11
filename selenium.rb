@@ -1,5 +1,7 @@
 # require 'rubygems'
 require 'pry'
+require 'nokogiri'
+require 'typhoeus'
 require 'selenium-webdriver'
 
 driver = Selenium::WebDriver.for :firefox
@@ -97,9 +99,46 @@ if form.displayed?
 	
 	def submitQ(state, race, sex, ethnicity, year1, year2, request, driver)
 		request.submit
-		driver.find_element(:link, "Download Results in a Spreadsheet (CSV) File").click
+		# download = driver.find_element(:link, "Download Results in a Spreadsheet (CSV) File")
+		youngest = driver.find_element(:link, "<1")
+		oneFour = driver.find_element(:link, "1-4")
+		fiveNine = driver.find_element(:link, "5-9")
+		tenFourteen = driver.find_element(:link, "10-14")
+		fifteenTwentyfour = driver.find_element(:link, "15-24")
+		twentyfiveThirtyfour = driver.find_element(:link, "25-34")
+		thirtyfiveFortyfour = driver.find_element(:link, "35-44")
+		fortyfiveFiftyfour = driver.find_element(:link, "45-54")
+		fiftyfiveSixtyfour = driver.find_element(:link, "55-64")
+		sixtyfiveSeventyfour = driver.find_element(:link, "65-74")
+		seventyfiveEightyfour = driver.find_element(:link, "75-84")
+		oldest = driver.find_element(:link, "85+")
+		youngestRes = Nokogiri::HTML(Typhoeus.get(youngest).response_body)
+		oneFourRes = Nokogiri::HTML(Typhoeus.get(oneFour).response_body)
+		fiveNineRes = Nokogiri::HTML(Typhoeus.get(fiveNine).response_body)
+		tenFourteenRes = Nokogiri::HTML(Typhoeus.get(tenFourteen).response_body)
+		fifteenTwentyfourRes = Nokogiri::HTML(Typhoeus.get(fifteenTwentyfour).response_body)
+		twentyfiveThirtyfourRes = Nokogiri::HTML(Typhoeus.get(twentyfiveThirtyfour).response_body)
+		thirtyfiveFortyfourRes = Nokogiri::HTML(Typhoeus.get(thirtyfiveFortyfour).response_body)
+		fortyfiveFiftyfourRes = Nokogiri::HTML(Typhoeus.get(fortyfiveFiftyfour).response_body)
+		fiftyfiveSixtyfourRes = Nokogiri::HTML(Typhoeus.get(fiftyfiveSixtyfour).response_body)
+		sixtyfiveSeventyfourRes = Nokogiri::HTML(Typhoeus.get(sixtyfiveSeventyfour).response_body)
+		seventyfiveEightyfourRes = Nokogiri::HTML(Typhoeus.get(seventyfiveEightyfour).response_body)
+		oldestRes = Nokogiri::HTML(Typhoeus.get(oldest).response_body)
+
+		p youngestRes
+		p oneFourRes
+		p fiveNineRes
+		p tenFourteenRes
+		p fifteenTwentyfourRes
+		p twentyfiveThirtyfourRes
+		p thirtyfiveFortyfourRes
+		p fortyfiveFiftyfourRes
+		p fiftyfiveSixtyfourRes
+		p sixtyfiveSeventyfourRes
+		p seventyfiveEightyfourRes
+		p oldestRes
+		 binding.pry
 		driver.navigate().back();
-		allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 	end
 
 	allStates(state, race, sex, ethnicity, year1, year2, request, driver)
