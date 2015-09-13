@@ -34,9 +34,9 @@ if form.displayed?
 	driver.find_element(:xpath, "//input[contains (@value, 'lcd3age')]").click
 	
 
-	def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
+	def allStates(state, race, sex, ethnicity, year1, year2, request, driver, form)
 		stateOpt = Selenium::WebDriver::Support::Select.new(state)
-		stNum = 1
+		stNum = 0
 		until stNum == 57
 			if stNum < 10
 				chosenSt = stateOpt.select_by(:value, "0"+stNum.to_s)
@@ -48,7 +48,12 @@ if form.displayed?
 				stNum+=1
 			else
 				# nesting race (leads to nested sex, ethnicity, year choices)
-				chooseRace(state, race, sex, ethnicity, year1, year2, request, driver)
+				if form.displayed?	
+					# messy = driver.find_element(:link, "National Center for Injury Prevention and Control")
+					# p messy
+					chooseRace(state, race, sex, ethnicity, year1, year2, request, driver)
+
+				end
 				stNum+=1	
 			end 
 		end
@@ -56,7 +61,7 @@ if form.displayed?
 
 	def chooseRace(state, race, sex, ethnicity, year1, year2, request, driver)
 		raceOpt = Selenium::WebDriver::Support::Select.new(race)
-		chosenRaceVal = 1
+		chosenRaceVal = 0
 		while chosenRaceVal < 6
 			raceOpt.select_by(:value, chosenRaceVal.to_s)
 			# nesting set sex
@@ -67,7 +72,7 @@ if form.displayed?
 
 	def chooseSex(state, race, sex, ethnicity, year1, year2, request, driver)
 		sexOpt = Selenium::WebDriver::Support::Select.new(sex)
-		chosenSexVal = 1
+		chosenSexVal = 0
 		while chosenSexVal < 3
 			sexOpt.select_by(:value, chosenSexVal.to_s)
 			#nesting choose ethnicity
@@ -77,7 +82,7 @@ if form.displayed?
 	end
 	def chooseEth(state, race, sex, ethnicity, year1, year2, request, driver)
 		ethnicityOpt = Selenium::WebDriver::Support::Select.new(ethnicity)
-		chosenEthVal = 1
+		chosenEthVal = 0
 		while chosenEthVal < 3
 			ethnicityOpt.select_by(:value, chosenEthVal.to_s)
 			# nesting set year
@@ -100,7 +105,9 @@ if form.displayed?
 	
 	def submitQ(state, race, sex, ethnicity, year1, year2, request, driver)
 		request.submit
+		
 		find_percentages(driver)
+		driver.navigate().back();
 		# download = driver.find_element(:link, "Download Results in a Spreadsheet (CSV) File")
 	end
 	def find_percentages(driver)
@@ -116,19 +123,36 @@ if form.displayed?
 		sixtyfiveSeventyfour = driver.find_element(:link, "65-74")
 		seventyfiveEightyfour = driver.find_element(:link, "75-84")
 		oldest = driver.find_element(:link, "85+")
+			response = Nokogiri::HTML(Typhoeus.get(youngest.attribute("href")).response_body)
+			tabledata = response.css("table")[0].css("tr")
+			titledata = response.css("p")[0].css("font")
+			# File.write('ALLMYDATA.html', tabledata, mode: 'a')
+			j = 1
+			while j < 24
+				binding.pry
+				cause = tabledata.css("tr")[j].css("td")[0].text
+				num = tabledata.css("tr")[j].css("td")[1].text
+				percent = tabledata.css("tr")[j].css("td")[3].text
+				File.write('tabledatatest.html', cause, mode: 'a')
+				File.write('tabledatatest.html', num, mode: 'a')
+				File.write('tabledatatest.html', percent, mode: 'a')
+				j+=1
+			end
 
-		eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest]
-		getRes(eachAge)
+		
+		# eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest]
+		# getRes(eachAge)
 		driver.navigate().back();
 	end
 	def getRes(arr)
 			arr.each do |ageGroup|
 				response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
-				File.write('ALLMYDATA.html', response, mode: 'a')
+				response.css("table")[0].css("tr")
+				# File.write('ALLMYDATA.html', response, mode: 'a')
 			end
 	end 
 
-	allStates(state, race, sex, ethnicity, year1, year2, request, driver)
+	allStates(state, race, sex, ethnicity, year1, year2, request, driver, form)
 
 	
 	# raceOpt = Selenium::WebDriver::Support::Select.new(race)
