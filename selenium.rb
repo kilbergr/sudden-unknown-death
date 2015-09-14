@@ -39,7 +39,7 @@ end
 
 def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 # The following don't exist...what to do? 3, 7, 14, 43, 52
-	stNum = 2
+	stNum = 0
 	until stNum == 57
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
@@ -64,7 +64,7 @@ end
 def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 
 	chosenRaceVal = 0
-	while chosenRaceVal < 1
+	while chosenRaceVal < 6
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -82,7 +82,7 @@ end
 def chooseSex(sex, ethnicity, year1, year2, request, driver)
 
 	chosenSexVal = 0
-	while chosenSexVal < 1
+	while chosenSexVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -98,7 +98,7 @@ def chooseSex(sex, ethnicity, year1, year2, request, driver)
 end
 def chooseEth(ethnicity, year1, year2, request, driver)
 	chosenEthVal = 0
-	while chosenEthVal < 1
+	while chosenEthVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -116,8 +116,7 @@ end
 def setYear(year1, year2, request, driver)
 
 	chosenYear = 1999
-	# !!!!!!!CHANGE
-	while chosenYear < 2000
+	while chosenYear < 2014
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -130,7 +129,6 @@ def setYear(year1, year2, request, driver)
 		yearOpt2 = Selenium::WebDriver::Support::Select.new(year2)
 		yearOpt1.select_by(:value, chosenYear.to_s)
 		yearOpt2.select_by(:value, chosenYear.to_s)
-		
 		
 		submitQ(request, driver)
 		chosenYear+=1
@@ -158,8 +156,9 @@ def find_percentages(driver)
 	sixtyfiveSeventyfour = driver.find_element(:link, "65-74")
 	seventyfiveEightyfour = driver.find_element(:link, "75-84")
 	oldest = driver.find_element(:link, "85+")
+	all = driver.find_element(:link, "All Ages")
 
-	eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest]
+	eachAge = [youngest, oneFour, fiveNine, tenFourteen, fifteenTwentyfour, twentyfiveThirtyfour, thirtyfiveFortyfour, fortyfiveFiftyfour, fiftyfiveSixtyfour, sixtyfiveSeventyfour, seventyfiveEightyfour, oldest, all]
  	
  	getRes(eachAge)
 	
@@ -172,20 +171,23 @@ def getRes(arr)
 			tablelength = tabledata.length
 			demGroup = response.css("p")[0].css("font")[1].text
 			stateName = response.css("p")[0].css("font")[0].text
-			whichState = stateName.split(",")[1]
-			whichYear = demGroup.split(",")[0]
-			whichRace = demGroup.split(",")[1]
+			whichState = stateName.split(",")[1].lstrip.rstrip
+			whichYear = demGroup.split(",")[0].lstrip.rstrip
+			whichRace = demGroup.split(",")[1].lstrip.rstrip
 			# Accounting for the fact that some include ethnicities, others don't
 			if demGroup.split(",").length == 3
-				whichAge = demGroup.split(",")[2].split(":")[1]
+				whichAge = demGroup.split(",")[2].split(":")[1].lstrip.rstrip
 				l = demGroup.split(",")[2].split(":")[0].length
-				whichSex = demGroup.split(",")[2].split(":")[0].slice(0, l-5)	
+				whichSex = demGroup.split(",")[2].split(":")[0].slice(0, l-5).lstrip.rstrip	
 				whichEthnicity = "All"	
 			elsif demGroup.split(",").length == 4
-				whichEthnicity = demGroup.split(",")[2]
-				whichAge = demGroup.split(",")[3].split(":")[1]
+				whichEthnicity = demGroup.split(",")[2].lstrip.rstrip
+				whichAge = demGroup.split(",")[3].split(":")[1].lstrip.rstrip
+				if whichAge == "   "
+					whichAge = "<1"
+				end
 				l = demGroup.split(",")[3].split(":")[0].length
-				whichSex = demGroup.split(",")[3].split(":")[0].slice(0, l-5)	
+				whichSex = demGroup.split(",")[3].split(":")[0].slice(0, l-5).lstrip.rstrip	
 			end
 			# state
 			File.write('tabledatatest.html', " state: " + whichState, mode: 'a')
@@ -203,13 +205,13 @@ def getRes(arr)
 			
 			j = 1
 			while j < tablelength
-				cause = tabledata.css("tr")[j].css("td")[0].text
-				num = tabledata.css("tr")[j].css("td")[1].text
-				percent = tabledata.css("tr")[j].css("td")[3].text
+				cause = tabledata.css("tr")[j].css("td")[0].text.lstrip.rstrip
+				num = tabledata.css("tr")[j].css("td")[1].text.lstrip.rstrip
+				percent = tabledata.css("tr")[j].css("td")[3].text.lstrip.rstrip	
 				percent.slice!(-1)
-				File.write('tabledatatest.html', cause, mode: 'a')
-				File.write('tabledatatest.html', num, mode: 'a')
-				File.write('tabledatatest.html', percent, mode: 'a')
+				File.write('tabledatatest.html', " cause: "+ cause, mode: 'a')
+				File.write('tabledatatest.html', " num: " + num, mode: 'a')
+				File.write('tabledatatest.html', "%: " + percent, mode: 'a')
 				# conn = PG.connect(:dbname => 'testdb')
 				#conn.prepare('statement1', 'insert into stats (state, year, race, sex, ethnicity, age, cause, number, percent) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)')
 				# conn.exec_prepared('statement1', [whichState, whichYear, whichRace, whichSex, whichEthnicity, whichAge, cause, num, percent ])
