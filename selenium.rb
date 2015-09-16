@@ -4,6 +4,11 @@ require 'pry'
 require 'nokogiri'
 require 'typhoeus'
 require 'selenium-webdriver'
+require 'net/http' 
+# so it doesn't timeout
+http = Net::HTTP.new(@host, @port)
+http.read_timeout = 500
+
 
 driver = Selenium::WebDriver.for :firefox
 def start(driver)
@@ -57,7 +62,10 @@ def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 
 		# nesting race (leads to nested sex, ethnicity, year choices)
 		chooseRace(race, sex, ethnicity, year1, year2, request, driver)
+
 		stNum+=1	 
+		# keeping track
+		puts "Congrats, made it through all of state corresponding to " + (stNum-1).to_s
 	end
 end
 
@@ -76,11 +84,12 @@ def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 		# nesting set sex
 		chooseSex(sex, ethnicity, year1, year2, request, driver)
 		chosenRaceVal+=1
+		puts "Congrats, made it through all races corresponding to " + (chosenRaceVal-1).to_s
 	end
 end
 
 def chooseSex(sex, ethnicity, year1, year2, request, driver)
-
+# 2009, White, Hispanic, Both Sexes
 	chosenSexVal = 0
 	while chosenSexVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
@@ -94,6 +103,7 @@ def chooseSex(sex, ethnicity, year1, year2, request, driver)
 		#nesting choose ethnicity
 		chooseEth( ethnicity, year1, year2, request, driver)
 		chosenSexVal+=1
+		puts "Congrats, made it through all sexes corresponding to " + (chosenSexVal-1).to_s
 	end
 end
 def chooseEth(ethnicity, year1, year2, request, driver)
@@ -164,12 +174,23 @@ def find_percentages(driver)
 	
 end
 def getRes(arr)
+	conn = PG.connect(:dbname => 'MortalityApp_development')
+	conn.prepare('statement1', 'insert into demographics (state, year, race, sex, ethnicity, age) values ($1, $2, $3, $4, $5, $6)')
+	conn.prepare('statement2', 'insert into deaths (cause) values ($1)')
+	conn.prepare('statement3', 'insert into figures (number, percent, demographic_id, death_id) values ($1, $2, $3, $4)')
+		
+	# Finding ids from death and demographic tables to create associations
+	conn.prepare('statement4', "select * from deaths where cause LIKE $1")
+	conn.prepare('statement5', "select * from demographics where state LIKE $1 AND age LIKE $2 AND race LIKE $3 AND CAST(year AS text) LIKE $4 AND sex LIKE $5 AND ethnicity LIKE $6")
+			
 	arr.each do |ageGroup|
 		response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
 		if response.css("table").length == 3
 			tabledata = response.css("table")[0].css("tr")
 			tablelength = tabledata.length
+			# all the demographic info
 			demGroup = response.css("p")[0].css("font")[1].text
+			# geographic info
 			stateName = response.css("p")[0].css("font")[0].text
 			whichState = stateName.split(",")[1].lstrip.rstrip
 			whichYear = demGroup.split(",")[0].lstrip.rstrip
@@ -183,38 +204,52 @@ def getRes(arr)
 			elsif demGroup.split(",").length == 4
 				whichEthnicity = demGroup.split(",")[2].lstrip.rstrip
 				whichAge = demGroup.split(",")[3].split(":")[1].lstrip.rstrip
-				if whichAge == "   "
-					whichAge = "<1"
-				end
 				l = demGroup.split(",")[3].split(":")[0].length
 				whichSex = demGroup.split(",")[3].split(":")[0].slice(0, l-5).lstrip.rstrip	
 			end
-			# state
-			File.write('tabledatatest.html', " state: " + whichState, mode: 'a')
-			# year
-			File.write('tabledatatest.html', " year: " + whichYear, mode: 'a')
-			# race
-			File.write('tabledatatest.html', " race: " + whichRace, mode: 'a')
-			#age group
-			File.write('tabledatatest.html', " age: " + whichAge, mode: 'a')
-			# sex
-			File.write('tabledatatest.html', " sex: " + whichSex, mode: 'a')
-			# ethnicity
-			File.write('tabledatatest.html', " ethnicity: " + whichEthnicity, mode: 'a')
-
+			# Accounting for the blank ages (<1)
+			if whichAge == ""
+				whichAge = "<1"
+			end
 			
-			j = 1
+			begin
+				conn.exec_prepared('statement1', [whichState, whichYear, whichRace, whichSex, whichEthnicity, whichAge])	
+			rescue PG::Error => e
+				#puts "another error"
+			end
+			# starting one below "all deaths"
+			j = 2
 			while j < tablelength
 				cause = tabledata.css("tr")[j].css("td")[0].text.lstrip.rstrip
-				num = tabledata.css("tr")[j].css("td")[1].text.lstrip.rstrip
+				# remove commas from numbers
+				numArr = tabledata.css("tr")[j].css("td")[1].text.lstrip.rstrip.split(",")
+				num = numArr.join("")
+				# remove percentage sign
 				percent = tabledata.css("tr")[j].css("td")[3].text.lstrip.rstrip	
 				percent.slice!(-1)
-				File.write('tabledatatest.html', " cause: "+ cause, mode: 'a')
-				File.write('tabledatatest.html', " num: " + num, mode: 'a')
-				File.write('tabledatatest.html', "%: " + percent, mode: 'a')
-				# conn = PG.connect(:dbname => 'testdb')
-				#conn.prepare('statement1', 'insert into stats (state, year, race, sex, ethnicity, age, cause, number, percent) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)')
-				# conn.exec_prepared('statement1', [whichState, whichYear, whichRace, whichSex, whichEthnicity, whichAge, cause, num, percent ])
+				# insert cause into death table
+				
+				begin
+					conn.exec_prepared('statement2', [cause])
+				rescue PG::Error => e
+					#puts "error"
+				end
+
+			
+				
+				cause_res = conn.exec_prepared('statement4', ["%"+ cause + "%"])
+				dem_res = conn.exec_prepared('statement5', ["%" + whichState + "%", "%" + whichAge + "%", "%" + whichRace + "%", "%" + whichYear + "%", "%" + whichSex + "%", "%" + whichEthnicity + "%"])
+				
+				if cause_res.ntuples > 0 && dem_res.ntuples > 0
+					cause_id = cause_res[0]['id']
+					dem_id = dem_res[0]['id']
+					conn.exec_prepared('statement3', [num, percent, dem_id, cause_id])
+				else 
+					puts 'CHECK THIS state: ' + whichState  + ' raised an error on 243'
+				end
+	
+			
+				
 				j+=1
 			end
 		end
