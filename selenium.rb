@@ -44,8 +44,12 @@ end
 
 def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 # The following don't exist...what to do? 3, 7, 14, 43, 52
-	stNum = 0
-	until stNum == 57
+# made through ALABAMA Asian/Pacific Islander Both sexes and male
+# need to restart at Alabama As/PacIs female both
+#restarted at 8-14
+	stNum = 8 
+	# COLORADO!!!
+	# until stNum == 15
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -66,13 +70,14 @@ def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 		stNum+=1	 
 		# keeping track
 		puts "Congrats, made it through all of state corresponding to " + (stNum-1).to_s
-	end
+		return
+	# end
 end
 
 def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 
-	chosenRaceVal = 0
-	while chosenRaceVal < 6
+	chosenRaceVal = 5
+	 while chosenRaceVal < 6
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -85,11 +90,12 @@ def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 		chooseSex(sex, ethnicity, year1, year2, request, driver)
 		chosenRaceVal+=1
 		puts "Congrats, made it through all races corresponding to " + (chosenRaceVal-1).to_s
-	end
+		return
+	 end
 end
 
 def chooseSex(sex, ethnicity, year1, year2, request, driver)
-# 2009, White, Hispanic, Both Sexes
+
 	chosenSexVal = 0
 	while chosenSexVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
@@ -107,8 +113,8 @@ def chooseSex(sex, ethnicity, year1, year2, request, driver)
 	end
 end
 def chooseEth(ethnicity, year1, year2, request, driver)
-	chosenEthVal = 0
-	while chosenEthVal < 3
+	chosenEthVal = 2
+	 while chosenEthVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -120,7 +126,8 @@ def chooseEth(ethnicity, year1, year2, request, driver)
 		# nesting set year
 		setYear(year1, year2, request, driver)
 		chosenEthVal +=1
-	end
+		return
+	 end
 end
 
 def setYear(year1, year2, request, driver)
@@ -243,6 +250,13 @@ def getRes(arr)
 				if cause_res.ntuples > 0 && dem_res.ntuples > 0
 					cause_id = cause_res[0]['id']
 					dem_id = dem_res[0]['id']
+					# instances where recordings without numbers/percentages
+					if num == "---" || num == "--" || num == "-"
+						num = 0
+					end
+					if percent == "." || percent == ". " || percent == "   . " || percent == "  . "
+						percent = 0.0
+					end
 					conn.exec_prepared('statement3', [num, percent, dem_id, cause_id])
 				else 
 					puts 'CHECK THIS state: ' + whichState  + ' raised an error on 243'
@@ -257,4 +271,3 @@ def getRes(arr)
 end 
 
 allStates(state, race, sex, ethnicity, year1, year2, request, driver)
-
