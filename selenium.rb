@@ -24,8 +24,6 @@ end
 	    element = driver.find_element(:name, "frmWISQ")
 	    element if element.displayed?
 	}
-
-
 	# Number of causes to show will always be 20
 	causeNum = driver.find_element(:name, "RANKING")
 	causeNumOpt = Selenium::WebDriver::Support::Select.new(causeNum)
@@ -44,12 +42,9 @@ end
 
 def allStates(state, race, sex, ethnicity, year1, year2, request, driver)
 # The following don't exist...what to do? 3, 7, 14, 43, 52
-# made through ALABAMA Asian/Pacific Islander Both sexes and male
-# need to restart at Alabama As/PacIs female both
-#restarted at 8-14
+
 	stNum = 8 
-	# COLORADO!!!
-	# until stNum == 15
+	# will stop at 14, since that state is missing. NBD may have some errors anyway
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -76,8 +71,8 @@ end
 
 def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 
-	chosenRaceVal = 5
-	 while chosenRaceVal < 6
+	chosenRaceVal = 0
+	while chosenRaceVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -90,12 +85,10 @@ def chooseRace(race, sex, ethnicity, year1, year2, request, driver)
 		chooseSex(sex, ethnicity, year1, year2, request, driver)
 		chosenRaceVal+=1
 		puts "Congrats, made it through all races corresponding to " + (chosenRaceVal-1).to_s
-		return
-	 end
+	end
 end
 
 def chooseSex(sex, ethnicity, year1, year2, request, driver)
-
 	chosenSexVal = 0
 	while chosenSexVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
@@ -112,9 +105,10 @@ def chooseSex(sex, ethnicity, year1, year2, request, driver)
 		puts "Congrats, made it through all sexes corresponding to " + (chosenSexVal-1).to_s
 	end
 end
+
 def chooseEth(ethnicity, year1, year2, request, driver)
-	chosenEthVal = 2
-	 while chosenEthVal < 3
+	chosenEthVal = 0
+	while chosenEthVal < 3
 		wait = Selenium::WebDriver::Wait.new(:timeout => 15)
 	  wait.until {
 		    element = driver.find_element(:name, "frmWISQ")
@@ -126,8 +120,7 @@ def chooseEth(ethnicity, year1, year2, request, driver)
 		# nesting set year
 		setYear(year1, year2, request, driver)
 		chosenEthVal +=1
-		return
-	 end
+	end
 end
 
 def setYear(year1, year2, request, driver)
@@ -188,7 +181,7 @@ def getRes(arr)
 		
 	# Finding ids from death and demographic tables to create associations
 	conn.prepare('statement4', "select * from deaths where cause LIKE $1")
-	conn.prepare('statement5', "select * from demographics where state LIKE $1 AND age LIKE $2 AND race LIKE $3 AND CAST(year AS text) LIKE $4 AND sex LIKE $5 AND ethnicity LIKE $6")
+	conn.prepare('statement5', "select * from demographics where state LIKE $1 AND state NOT LIKE '%South Dakota%' AND age LIKE $2 AND race LIKE $3 AND CAST(year AS text) LIKE $4 AND sex LIKE $5 AND ethnicity LIKE $6 AND ethnicity NOT LIKE $7")
 			
 	arr.each do |ageGroup|
 		response = Nokogiri::HTML(Typhoeus.get(ageGroup.attribute("href")).response_body).children[1].children[7]
@@ -222,7 +215,7 @@ def getRes(arr)
 			begin
 				conn.exec_prepared('statement1', [whichState, whichYear, whichRace, whichSex, whichEthnicity, whichAge])	
 			rescue PG::Error => e
-				#puts "another error"
+				puts "another error"
 			end
 			# starting one below "all deaths"
 			j = 2
@@ -239,13 +232,11 @@ def getRes(arr)
 				begin
 					conn.exec_prepared('statement2', [cause])
 				rescue PG::Error => e
-					#puts "error"
+					puts "error"
 				end
-
-			
 				
 				cause_res = conn.exec_prepared('statement4', ["%"+ cause + "%"])
-				dem_res = conn.exec_prepared('statement5', ["%" + whichState + "%", "%" + whichAge + "%", "%" + whichRace + "%", "%" + whichYear + "%", "%" + whichSex + "%", "%" + whichEthnicity + "%"])
+				dem_res = conn.exec_prepared('statement5', ["%" + whichState + "%", "%" + whichAge + "%", "%" + whichRace + "%", "%" + whichYear + "%", "%" + whichSex + "%", "%" + whichEthnicity + "%", "%Non-" + whichEthnicity + "%"])
 				
 				if cause_res.ntuples > 0 && dem_res.ntuples > 0
 					cause_id = cause_res[0]['id']
@@ -261,9 +252,6 @@ def getRes(arr)
 				else 
 					puts 'CHECK THIS state: ' + whichState  + ' raised an error on 243'
 				end
-	
-			
-				
 				j+=1
 			end
 		end
